@@ -1,22 +1,7 @@
----
-title: "TS model summaries"
-output: github_document
----
+TS model summaries
+================
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-
-library(drake)
-library(dplyr)
-library(ggplot2)
-
-## Set up the cache and config
-db <- DBI::dbConnect(RSQLite::SQLite(), here::here("drake", "drake-cache.sqlite"))
-cache <- storr::storr_dbi("datatable", "keystable", db)
-
-```
-
-```{r load stuff}
+``` r
 loadd(all_models, cache = cache)
 
 model_names <- lapply(as.list(names(all_models)), 
@@ -39,12 +24,11 @@ model_names <- as.data.frame(model_names) %>%
          obj_index = row_number(),
          full_name = names(all_models)) %>%
   mutate(k = factor(k, levels = as.character(sort(as.numeric(levels(k))))))
-
 ```
 
-
 ### Runtime of TS models (in seconds)
-```{r runtime}
+
+``` r
 runtime <- data.frame(
   full_name = names(all_models),
   runtime = vapply(all_models,
@@ -63,12 +47,14 @@ runtime_plot <- ggplot(data = model_info, aes(x = nit, y = runtime, color = k)) 
   theme_bw() +
   scale_color_viridis_d(end = .8)
 runtime_plot
-
 ```
 
-## AICc of TS models
+![](summary_files/figure-markdown_github/runtime-1.png)
 
-```{r aicc}
+AICc of TS models
+-----------------
+
+``` r
 aiccs <- data.frame(
   aicc = vapply(all_models,
                 FUN = function(ts_result)
@@ -90,41 +76,73 @@ aic_plot <- ggplot(data = model_info, aes(x = nit, y = aic, color = k)) +
   scale_color_viridis_d(end = .8)
 
 aic_plot
-
 ```
+
+![](summary_files/figure-markdown_github/aicc-1.png)
 
 Why do matching models have the same AIC? They have different formulas and different projections:
 
-```{r dig in}
-
+``` r
 loadd(models_1977_2_0_time_100, cache = cache)
 loadd(models_1977_2_0_intercept_100, cache = cache)
 
 models_1977_2_0_time_100$ts[[1]]$formula
+```
+
+    ## gamma ~ year
+    ## <environment: 0x7febcde15db0>
+
+``` r
 models_1977_2_0_intercept_100$ts[[1]]$formula
+```
 
+    ## gamma ~ 1
+    ## <environment: 0x7febcd6a0188>
+
+``` r
 plot(models_1977_2_0_time_100$ts[[1]])
+```
 
+![](summary_files/figure-markdown_github/dig%20in-1.png)
+
+``` r
 plot(models_1977_2_0_intercept_100$ts[[1]])
+```
 
+![](summary_files/figure-markdown_github/dig%20in-2.png)
 
+``` r
 loadd(models_1977_2_1_time_100, cache = cache)
 loadd(models_1977_2_1_intercept_100, cache = cache)
 
 models_1977_2_1_time_100$ts[[1]]$formula
-models_1977_2_1_intercept_100$ts[[1]]$formula
-
-plot(models_1977_2_1_time_100$ts[[1]])
-
-plot(models_1977_2_1_intercept_100$ts[[1]])
-
 ```
 
-Interestingly, AICc matches across nb iterations but does change for model configurations. My current guess is that this is so few iterations, 1000 vs. 100 doesn't give substantially different fits. More iterations might start to show changes - stay tuned for 10k from the hipergator. 
+    ## gamma ~ year
+    ## <environment: 0x7febcc00d348>
 
-```{r aiccs}
+``` r
+models_1977_2_1_intercept_100$ts[[1]]$formula
+```
 
+    ## gamma ~ 1
+    ## <environment: 0x7febcb8ea630>
 
+``` r
+plot(models_1977_2_1_time_100$ts[[1]])
+```
+
+![](summary_files/figure-markdown_github/dig%20in-3.png)
+
+``` r
+plot(models_1977_2_1_intercept_100$ts[[1]])
+```
+
+![](summary_files/figure-markdown_github/dig%20in-4.png)
+
+Interestingly, AICc matches across nb iterations but does change for model configurations. My current guess is that this is so few iterations, 1000 vs. 100 doesn't give substantially different fits. More iterations might start to show changes - stay tuned for 10k from the hipergator.
+
+``` r
 aicc_plot <- ggplot(data = model_info, aes(x = nit, y = aicc, color = k)) +
   geom_boxplot() +
   facet_grid(rows = vars(cov), cols = vars(ncpts), switch = "y") +
@@ -132,5 +150,6 @@ aicc_plot <- ggplot(data = model_info, aes(x = nit, y = aicc, color = k)) +
   scale_color_viridis_d(end = .8)
 
 aicc_plot
-
 ```
+
+![](summary_files/figure-markdown_github/aiccs-1.png)

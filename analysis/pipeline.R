@@ -11,13 +11,13 @@ expose_imports(matssldats)
 
 seed <- 1977
 
-ncpts <- c(0:4)
+ncpts <- c(0, 1, 4)
 
-ntopics <- c(2, 3, 6, 12)
+ntopics <- c(2, 12)
 
 forms <- c("intercept", "time")
 
-nits <- c(100, 1000, 10000)
+nits <- c(100, 10000, 100000)
 
 
 pipeline <- drake_plan(

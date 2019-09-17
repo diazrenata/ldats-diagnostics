@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=ls-toplevel-cv   # Job name
+#SBATCH --job-name=ld-toplevel   # Job name
 #SBATCH --mail-type=ALL               # Mail events (NONE, BEGIN, END, FAIL, AL$
 #SBATCH --mail-user=diaz.renata@ufl.edu   # Where to send mail
 #SBATCH --account=ewhite

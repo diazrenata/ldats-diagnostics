@@ -1,4 +1,4 @@
-TS model summaries
+TS model diagnostics
 ================
 
 ``` r
@@ -83,59 +83,59 @@ aic_plot
 Why do matching models have the same AIC? They have different formulas and different projections:
 
 ``` r
-loadd(models_1977_2_0_time_100, cache = cache)
-loadd(models_1977_2_0_intercept_100, cache = cache)
+loadd(models_1977_2_0L_time_100, cache = cache)
+loadd(models_1977_2_0L_intercept_100, cache = cache)
 
-models_1977_2_0_time_100$ts[[1]]$formula
+models_1977_2_0L_time_100$ts[[1]]$formula
 ```
 
     ## gamma ~ year
-    ## <environment: 0x7ff73fb99e50>
+    ## <environment: 0x7f9526ccebb0>
 
 ``` r
-models_1977_2_0_intercept_100$ts[[1]]$formula
+models_1977_2_0L_intercept_100$ts[[1]]$formula
 ```
 
     ## gamma ~ 1
-    ## <environment: 0x7ff745d1e448>
+    ## <environment: 0x7f952d466aa8>
 
 ``` r
-plot(models_1977_2_0_time_100$ts[[1]])
+plot(models_1977_2_0L_time_100$ts[[1]])
 ```
 
 ![](summary_files/figure-markdown_github/dig%20in-1.png)
 
 ``` r
-plot(models_1977_2_0_intercept_100$ts[[1]])
+plot(models_1977_2_0L_intercept_100$ts[[1]])
 ```
 
 ![](summary_files/figure-markdown_github/dig%20in-2.png)
 
 ``` r
-loadd(models_1977_2_1_time_100, cache = cache)
-loadd(models_1977_2_1_intercept_100, cache = cache)
+loadd(models_1977_2_1L_time_100, cache = cache)
+loadd(models_1977_2_1L_intercept_100, cache = cache)
 
-models_1977_2_1_time_100$ts[[1]]$formula
+models_1977_2_1L_time_100$ts[[1]]$formula
 ```
 
     ## gamma ~ year
-    ## <environment: 0x7ff7447aa008>
+    ## <environment: 0x7f953020fde8>
 
 ``` r
-models_1977_2_1_intercept_100$ts[[1]]$formula
+models_1977_2_1L_intercept_100$ts[[1]]$formula
 ```
 
     ## gamma ~ 1
-    ## <environment: 0x7ff7444cc090>
+    ## <environment: 0x7f952a8d5f10>
 
 ``` r
-plot(models_1977_2_1_time_100$ts[[1]])
+plot(models_1977_2_1L_time_100$ts[[1]])
 ```
 
 ![](summary_files/figure-markdown_github/dig%20in-3.png)
 
 ``` r
-plot(models_1977_2_1_intercept_100$ts[[1]])
+plot(models_1977_2_1L_intercept_100$ts[[1]])
 ```
 
 ![](summary_files/figure-markdown_github/dig%20in-4.png)
@@ -174,7 +174,9 @@ etas <- bind_rows(etas, .id = "full_name") %>%
   tidyr::gather(-draw, -full_name, key = "parameter", value = "estimate") %>%
   filter(!is.na(estimate))
 
-etas_info <- left_join(etas, model_info, by = "full_name")
+etas_info <- left_join(etas, model_info, by = "full_name") %>%
+  filter(k %in% c(2,3),
+         as.character(ncpts) %in% c("0L", "1L"))
 
 
 etas_plot <- ggplot(data = etas_info, aes(x = draw, y = estimate, color = k)) +

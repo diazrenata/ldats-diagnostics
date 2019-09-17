@@ -1,5 +1,5 @@
 ---
-title: "TS model summaries"
+title: "TS model diagnostics"
 output: github_document
 ---
 
@@ -132,5 +132,44 @@ aicc_plot <- ggplot(data = model_info, aes(x = nit, y = aicc, color = k)) +
   scale_color_viridis_d(end = .8)
 
 aicc_plot
+
+```
+
+## Parameter estimates over iterations
+
+```{r clean up space, include = F}
+rm(models_1977_2_0_intercept_100)
+rm(models_1977_2_0_time_100)
+rm(models_1977_2_1_intercept_100)
+rm(models_1977_2_1_time_100)
+```
+
+### Etas (coefficients within segments)
+
+```{r extract eta estimates, fig.height = 200, fig.width = 8}
+
+get_etas <- function(ts_result) {
+  etas_df <- ts_result$ts[[1]]$etas %>%
+    as.data.frame() %>%
+    mutate(draw = row_number())
+  
+  return(etas_df)
+}
+
+etas <- lapply(all_models, FUN = get_etas)
+
+etas <- bind_rows(etas, .id = "full_name") %>%
+  tidyr::gather(-draw, -full_name, key = "parameter", value = "estimate") %>%
+  filter(!is.na(estimate))
+
+etas_info <- left_join(etas, model_info, by = "full_name")
+
+
+etas_plot <- ggplot(data = etas_info, aes(x = draw, y = estimate, color = k)) +
+  geom_line() +
+  theme_bw() +
+  facet_grid(rows = vars(ncpts, cov, k, parameter), cols = vars(nit), scales = "free", switch = "y", drop = TRUE) +
+  scale_color_viridis_d(end = .8)
+etas_plot
 
 ```

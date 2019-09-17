@@ -1,0 +1,10 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+drake/
+drake/*
+.drake_history/*
+.drake_history
+.future/*
+.future

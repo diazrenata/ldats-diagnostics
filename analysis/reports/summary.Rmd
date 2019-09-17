@@ -59,7 +59,7 @@ model_info <- left_join(model_names, runtime, by = "full_name")
 
 runtime_plot <- ggplot(data = model_info, aes(x = nit, y = runtime, color = k)) +
   geom_boxplot() +
-  facet_grid(rows = vars(cov), cols = vars(ncpts), switch = "y") +
+  facet_grid(rows = vars(cov, ncpts), cols = vars(k), switch = "y") +
   theme_bw() +
   scale_color_viridis_d(end = .8)
 runtime_plot
@@ -85,7 +85,7 @@ model_info <- left_join(model_info, aiccs, by = "full_name")
 
 aic_plot <- ggplot(data = model_info, aes(x = nit, y = aic, color = k)) +
   geom_boxplot() +
-  facet_grid(rows = vars(cov), cols = vars(ncpts), switch = "y") +
+  facet_grid(rows = vars(cov, ncpts), cols = vars(k), switch = "y") +
   theme_bw() +
   scale_color_viridis_d(end = .8)
 
@@ -120,14 +120,14 @@ plot(models_1977_2_1L_intercept_100$ts[[1]])
 
 ```
 
-Interestingly, AICc matches across nb iterations but does change for model configurations. My current guess is that this is so few iterations, 1000 vs. 100 doesn't give substantially different fits. More iterations might start to show changes - stay tuned for 10k from the hipergator. 
+Interestingly, AICc matches across nb iterations but does change for model configurations. My current guess is that this is so few iterations, 10000 vs. 100 doesn't give substantially different fits. More iterations might start to show changes - stay tuned for 100k from the hipergator. 
 
 ```{r aiccs}
 
 
 aicc_plot <- ggplot(data = model_info, aes(x = nit, y = aicc, color = k)) +
   geom_boxplot() +
-  facet_grid(rows = vars(cov), cols = vars(ncpts), switch = "y") +
+  facet_grid(rows = vars(cov, ncpts), cols = vars(k), switch = "y") +
   theme_bw() +
   scale_color_viridis_d(end = .8)
 
@@ -146,7 +146,7 @@ rm(models_1977_2_1L_time_100)
 
 ### Etas (coefficients within segments)
 
-```{r extract eta estimates, fig.height = 50, fig.width = 12, eval = T}
+```{r etas, fig.height = 50, fig.width = 12, eval = T}
 
 get_etas <- function(ts_result) {
   etas_df <- ts_result$ts[[1]]$etas %>%
@@ -173,5 +173,37 @@ etas_plot <- ggplot(data = etas_info, aes(x = draw, y = estimate, color = k)) +
   facet_grid(rows = vars(ncpts, cov, k, parameter), cols = vars(nit), scales = "free", switch = "y", drop = TRUE) +
   scale_color_viridis_d(end = .8)
 etas_plot
+
+```
+
+### Rhos (changepoint locations)
+```{r rhos, fig.width = 12, fig.height= 20}
+
+get_rhos <- function(ts_result) {
+  rhos_df <- ts_result$ts[[1]]$rhos %>%
+    as.data.frame() %>%
+    mutate(draw = row_number())
+  
+  return(rhos_df)
+}
+
+rhos <- lapply(all_models, FUN = get_rhos)
+
+rhos <- bind_rows(rhos, .id = "full_name") %>%
+  tidyr::gather(-draw, -full_name, key = "changepoint", value = "estimate") %>%
+  filter(!is.na(estimate)) %>%
+  mutate(changepoint = substr(changepoint, 2, nchar(changepoint)))
+
+rhos_info <- left_join(rhos, model_info, by = "full_name") %>%
+  filter(k %in% c(2,3),
+         as.character(ncpts) %in% c("1L", "4L"))
+
+
+rhos_plot <- ggplot(data = rhos_info, aes(x = draw, y = estimate, color = changepoint)) +
+  geom_line() +
+  theme_bw() +
+  facet_grid(rows = vars(ncpts, cov, k), cols = vars(nit), scales = "free", switch = "y", drop = TRUE) +
+  scale_color_viridis_d(end = .8)
+rhos_plot
 
 ```

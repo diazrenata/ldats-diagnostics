@@ -43,7 +43,7 @@ model_info <- left_join(model_names, runtime, by = "full_name")
 
 runtime_plot <- ggplot(data = model_info, aes(x = nit, y = runtime, color = k)) +
   geom_boxplot() +
-  facet_grid(rows = vars(cov), cols = vars(ncpts), switch = "y") +
+  facet_grid(rows = vars(cov, ncpts), cols = vars(k), switch = "y") +
   theme_bw() +
   scale_color_viridis_d(end = .8)
 runtime_plot
@@ -71,7 +71,7 @@ model_info <- left_join(model_info, aiccs, by = "full_name")
 
 aic_plot <- ggplot(data = model_info, aes(x = nit, y = aic, color = k)) +
   geom_boxplot() +
-  facet_grid(rows = vars(cov), cols = vars(ncpts), switch = "y") +
+  facet_grid(rows = vars(cov, ncpts), cols = vars(k), switch = "y") +
   theme_bw() +
   scale_color_viridis_d(end = .8)
 
@@ -90,14 +90,14 @@ models_1977_2_0L_time_100$ts[[1]]$formula
 ```
 
     ## gamma ~ year
-    ## <environment: 0x7f9526ccebb0>
+    ## <environment: 0x7f8ce3b815b0>
 
 ``` r
 models_1977_2_0L_intercept_100$ts[[1]]$formula
 ```
 
     ## gamma ~ 1
-    ## <environment: 0x7f952d466aa8>
+    ## <environment: 0x7f8ce46fc1d0>
 
 ``` r
 plot(models_1977_2_0L_time_100$ts[[1]])
@@ -119,14 +119,14 @@ models_1977_2_1L_time_100$ts[[1]]$formula
 ```
 
     ## gamma ~ year
-    ## <environment: 0x7f953020fde8>
+    ## <environment: 0x7f8ce3f70940>
 
 ``` r
 models_1977_2_1L_intercept_100$ts[[1]]$formula
 ```
 
     ## gamma ~ 1
-    ## <environment: 0x7f952a8d5f10>
+    ## <environment: 0x7f8ce5d15ea0>
 
 ``` r
 plot(models_1977_2_1L_time_100$ts[[1]])
@@ -140,12 +140,12 @@ plot(models_1977_2_1L_intercept_100$ts[[1]])
 
 ![](summary_files/figure-markdown_github/dig%20in-4.png)
 
-Interestingly, AICc matches across nb iterations but does change for model configurations. My current guess is that this is so few iterations, 1000 vs. 100 doesn't give substantially different fits. More iterations might start to show changes - stay tuned for 10k from the hipergator.
+Interestingly, AICc matches across nb iterations but does change for model configurations. My current guess is that this is so few iterations, 10000 vs. 100 doesn't give substantially different fits. More iterations might start to show changes - stay tuned for 100k from the hipergator.
 
 ``` r
 aicc_plot <- ggplot(data = model_info, aes(x = nit, y = aicc, color = k)) +
   geom_boxplot() +
-  facet_grid(rows = vars(cov), cols = vars(ncpts), switch = "y") +
+  facet_grid(rows = vars(cov, ncpts), cols = vars(k), switch = "y") +
   theme_bw() +
   scale_color_viridis_d(end = .8)
 
@@ -187,4 +187,37 @@ etas_plot <- ggplot(data = etas_info, aes(x = draw, y = estimate, color = k)) +
 etas_plot
 ```
 
-![](summary_files/figure-markdown_github/extract%20eta%20estimates-1.png)
+![](summary_files/figure-markdown_github/etas-1.png)
+
+### Rhos (changepoint locations)
+
+``` r
+get_rhos <- function(ts_result) {
+  rhos_df <- ts_result$ts[[1]]$rhos %>%
+    as.data.frame() %>%
+    mutate(draw = row_number())
+  
+  return(rhos_df)
+}
+
+rhos <- lapply(all_models, FUN = get_rhos)
+
+rhos <- bind_rows(rhos, .id = "full_name") %>%
+  tidyr::gather(-draw, -full_name, key = "changepoint", value = "estimate") %>%
+  filter(!is.na(estimate)) %>%
+  mutate(changepoint = substr(changepoint, 2, nchar(changepoint)))
+
+rhos_info <- left_join(rhos, model_info, by = "full_name") %>%
+  filter(k %in% c(2,3),
+         as.character(ncpts) %in% c("1L", "4L"))
+
+
+rhos_plot <- ggplot(data = rhos_info, aes(x = draw, y = estimate, color = changepoint)) +
+  geom_line() +
+  theme_bw() +
+  facet_grid(rows = vars(ncpts, cov, k), cols = vars(nit), scales = "free", switch = "y", drop = TRUE) +
+  scale_color_viridis_d(end = .8)
+rhos_plot
+```
+
+![](summary_files/figure-markdown_github/rhos-1.png)

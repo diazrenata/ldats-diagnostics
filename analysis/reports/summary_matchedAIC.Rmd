@@ -16,8 +16,8 @@ The current diagnostics are:
 
 The current model configurations are all combinations of:
 * LDA seed = 1977
-* 2 or 12 topics
-* 0, 1, or 4 changepoints
+* 2, 3, 6, or 12 topics
+* 0, 1, 2, 3, or 4 changepoints
 * Formulas `~ 1` or `~ time`
 
 I have not plotted all the etas because there are a lot of them for the more complex models. 
@@ -31,7 +31,7 @@ library(dplyr)
 library(ggplot2)
 
 ## Set up the cache and config
-db <- DBI::dbConnect(RSQLite::SQLite(), here::here("drake", "drake-cache.sqlite"))
+db <- DBI::dbConnect(RSQLite::SQLite(), here::here("drake", "drake-cache-manyoptions.sqlite"))
 cache <- storr::storr_dbi("datatable", "keystable", db)
 
 ```
@@ -93,7 +93,7 @@ runtime_plot
 
 ```
 
-## AICc of TS models
+## AIC and AICc of TS models
 
 ```{r aicc}
 aiccs <- data.frame(
@@ -114,7 +114,8 @@ aic_plot <- ggplot(data = model_info, aes(x = nit, y = aic, color = k)) +
   geom_boxplot() +
   facet_grid(rows = vars(cov), cols = vars(ncpts), switch = "y") +
   theme_bw() +
-  scale_color_viridis_d(end = .8)
+  scale_color_viridis_d(end = .8) +
+  ggtitle("AIC")
 
 aic_plot
 
@@ -124,82 +125,45 @@ aic_match <- model_info %>%
   ungroup() %>%
   select(-seed, -obj_index, -full_name, -runtime)
 
-print(aic_match)
 
 ```
 
-Why do matching models have the same AIC? They have different formulas and different projections:
-
-```{r dig in}
-
-loadd(models_1977_2_0_time_100, cache = cache)
-loadd(models_1977_2_0_intercept_100, cache = cache)
-
-models_1977_2_0_time_100$ts[[1]]$formula
-models_1977_2_0_intercept_100$ts[[1]]$formula
-
-plot(models_1977_2_0_time_100$ts[[1]])
-
-plot(models_1977_2_0_intercept_100$ts[[1]])
-
-
-loadd(models_1977_2_1_time_100, cache = cache)
-loadd(models_1977_2_1_intercept_100, cache = cache)
-
-models_1977_2_1_time_100$ts[[1]]$formula
-models_1977_2_1_intercept_100$ts[[1]]$formula
-
-plot(models_1977_2_1_time_100$ts[[1]])
-
-plot(models_1977_2_1_intercept_100$ts[[1]])
-
-```
-
-Interestingly, AICc matches across nb iterations but does change for model configurations. My current guess is that this is so few iterations, 10000 vs. 100 doesn't give substantially different fits. More iterations might start to show changes - stay tuned for 100k from the hipergator. 
 
 ```{r aiccs}
 
 
 aicc_plot <- ggplot(data = model_info, aes(x = nit, y = aicc, color = k)) +
   geom_boxplot() +
-  facet_grid(rows = vars(cov, ncpts), cols = vars(k), switch = "y") +
+  facet_grid(rows = vars(cov), cols = vars(ncpts), switch = "y") +
   theme_bw() +
-  scale_color_viridis_d(end = .8)
+  scale_color_viridis_d(end = .8) +
+  ggtitle("AICc")
 
 aicc_plot
 
 ```
 
-## Parameter estimates over iterations
+AIC appears not to change across model configurations (i.e. between `~intercept` and `~time`), but the values are in fact different. The values *do not* change across numbers of iterations, however.
 
-```{r clean up space, include = F}
-rm(models_1977_2_0_time_100)
-rm(models_1977_2_0_intercept_100)
-rm(models_1977_2_1_time_100)
-rm(models_1977_2_1_intercept_100)
+```{r print aic match}
+print(aic_match[1:30, ])
 ```
+
+
+## Parameter estimates over iterations
 
 ### Etas (coefficients within segments)
 
-```{r etas, fig.width = 8, fig.height= 40}
+I have plotted etas for models with 2 topics, 0 or 1 changepoint, and `~1` or `~time`. Other configurations are possible but can be very large, because there are new etas for every additional topic-segment combination. I'm hoping the 10000 iteration plots will be visible at high resolution.
+
+The facet strips are: number of changepoints; formula; parameter being estimated.
+
+```{r etas}
 
 get_etas <- function(ts_result) {
   etas_df <- ts_result$ts[[1]]$etas %>%
     as.data.frame() %>%
     mutate(draw = row_number())
-  
-  if(max(etas_df$draw) > 1000) {
-    draws_to_keep <- seq(1, .99 * max(etas_df$draw), by = max(etas_df$draw) / 10)
-    
-    draws_to_keep <- c(draws_to_keep, seq(max(draws_to_keep),
-                                           max(etas_df$draw),
-                                           by = max(etas_df$draw) / 100))
-    draws_to_keep <- unique(draws_to_keep)
-    
-    etas_df <- filter(etas_df, draw %in% draws_to_keep)
-  }
-  
-  
   return(etas_df)
 }
 
@@ -210,38 +174,62 @@ etas <- bind_rows(etas, .id = "full_name") %>%
   filter(!is.na(estimate))
 
 etas_info <- left_join(etas, model_info, by = "full_name") %>%
-  filter(k %in% c(2),
-         as.character(ncpts) %in% c("0", "1"))
+  filter(as.character(k) %in% c("2"),
+         as.character(ncpts) %in% c("0L", "1L")) 
 
 
-etas_plot <- ggplot(data = etas_info, aes(x = draw, y = estimate, color = k)) +
-  geom_line() +
+etas_plots <- list() 
+
+for(i in 1:length(levels(etas_info$nit))) {
+  these_etas <- filter(etas_info, nit == levels(nit)[i])
+  
+  lsize <- max(.05, 100 / as.numeric(as.character(these_etas$nit[1])))
+  
+  etas_plots[[i]] <- ggplot(data = these_etas, aes(x = draw, y = estimate)) +
+  geom_line(size = lsize) +
   theme_bw() +
-  facet_wrap(facets = c("ncpts", "cov", "k", "nit"), scales = "free", strip.position = "top", ncol = 1, drop = TRUE)  +
-  scale_color_viridis_d(end = .8)
-etas_plot
+  facet_wrap(facets = c("ncpts", "cov", "parameter"), scales = "free", strip.position = "top", ncol = 1, drop = TRUE)  +
+  scale_color_viridis_d(end = .8) +
+    ggtitle(paste0("Etas: ", these_etas$nit[1], " iterations"))
+  
+}
+
+```
+
+#### Etas 100 iterations
+
+```{r etas 100, fig.width = 10, fig.height = 20}
+
+etas_plots[[1]]
+
+```
+
+#### Etas 1000 iterations
+
+```{r etas 1000, fig.width = 10, fig.height = 20}
+
+etas_plots[[2]]
+
+```
+
+#### Etas 10000 iterations
+
+```{r etas 10000, fig.width = 25, fig.height = 20}
+
+etas_plots[[3]]
 
 ```
 
 ### Rhos (changepoint locations)
-```{r rhos, fig.width = 8, fig.height= 80}
+
+I have plotted rhos for models with 2 topics, 1 or 2 changepoints, and `~1` or `~time`. The facet strips are number of changepoints; formula. The colors are the different changepoints being estimated.
+
+```{r rhos}
 
 get_rhos <- function(ts_result) {
   rhos_df <- ts_result$ts[[1]]$rhos %>%
     as.data.frame() %>%
     mutate(draw = row_number())
-  
-   if(max(rhos_df$draw) > 1000) {
-    draws_to_keep <- seq(1, .99 * max(rhos_df$draw), by = max(rhos_df$draw) / 10)
-    
-    draws_to_keep <- c(draws_to_keep, seq(max(draws_to_keep),
-                                           max(rhos_df$draw),
-                                           by =  max(rhos_df$draw) / 100))
-    draws_to_keep <- unique(draws_to_keep)
-    
-    rhos_df <- filter(rhos_df, draw %in% draws_to_keep)
-  }
-  
   return(rhos_df)
 }
 
@@ -253,15 +241,48 @@ rhos <- bind_rows(rhos, .id = "full_name") %>%
   mutate(changepoint = substr(changepoint, 2, nchar(changepoint)))
 
 rhos_info <- left_join(rhos, model_info, by = "full_name") %>%
-  filter(k %in% c(2, 12),
-         as.character(ncpts) %in% c("1", "4"))
+  filter(as.character(k) %in% c("2"),
+         as.character(ncpts) %in% c("1L", "2L"))
 
 
-rhos_plot <- ggplot(data = rhos_info, aes(x = draw, y = estimate, color = changepoint)) +
-  geom_line() +
+rhos_plots <- list() 
+
+for(i in 1:length(levels(rhos_info$nit))) {
+  these_rhos <- filter(rhos_info, nit == levels(nit)[i])
+  
+  lsize <- max(.05, 100 / as.numeric(as.character(these_rhos$nit[1])))
+  
+  rhos_plots[[i]] <- ggplot(data = these_rhos, aes(x = draw, y = estimate, color = changepoint)) +
+  geom_line(size = lsize) +
   theme_bw() +
-  facet_wrap(facets = c("ncpts", "cov", "k", "nit"), scales = "free", strip.position = "top", ncol = 1, drop = TRUE) +
-  scale_color_viridis_d(end = .8)
-rhos_plot
+  facet_wrap(facets = c("ncpts", "cov"), scales = "free", strip.position = "top", ncol = 1, drop = TRUE)  +
+  scale_color_viridis_d(end = .8) +
+    ggtitle(paste0("Rhos: ", these_rhos$nit[1], " iterations"))
+  
+}
+
+```
+
+#### Rhos 100 iterations
+
+```{r rhos 100, fig.width = 10, fig.height = 20}
+
+rhos_plots[[1]]
+
+```
+
+#### Rhos 1000 iterations
+
+```{r rhos 1000, fig.width = 10, fig.height = 10}
+
+rhos_plots[[2]]
+
+```
+
+#### Rhos 10000 iterations
+
+```{r rhos 10000, fig.width = 25, fig.height = 10}
+
+rhos_plots[[3]]
 
 ```

@@ -1,284 +1,89 @@
 TS model diagnostics
 ================
 
-``` r
-loadd(all_models, cache = cache)
+Summary report of various diagnostics for LDATS time series models run with model configurations.
 
-model_names <- lapply(as.list(names(all_models)), 
-                      FUN = function(model_result_name)
-                        return(strsplit(model_result_name, "_")[[1]]))
+The current diagnostics are:
 
-names(model_names) = 1:length(model_names)
-model_names <- bind_rows(model_names) %>%
-  t()
+-   Runtime (in seconds)
+-   AIC as reported in the `TS_on_LDA` object from LDATS; `ts_model$AIC`
+-   AICc as calculated by `LDATS::AICc`; `LDATS::AICc(ts_model)`
+-   Trace plots of parameter estimates over time. These parameters are:
+-   Etas: Estimates of the intercept & covariate coefficients (if applicable) for the TS fit. For a model with `n` changepoints and `k` topics, there will be `(n + 1) * (k - 1)` etas.
+-   Rhos: Estimates of the changepoint locations (if applicable). There is one rho for every changepoint in a model.
 
-model_names <- as.data.frame(model_names) %>%
-  select(-V1) %>%
-  rename(seed = V2,
-         k = V3,
-         ncpts = V4,
-         cov = V5,
-         nit = V6) %>%
-  mutate(k = factor(k),
-         ncpts = as.factor(ncpts),
-         obj_index = row_number(),
-         full_name = names(all_models)) %>%
-  mutate(k = factor(k, levels = as.character(sort(as.numeric(levels(k))))))
-```
+The current model configurations are all combinations of: \* LDA seed = 1977 \* 2 or 12 topics \* 0, 1, or 4 changepoints \* Formulas `~ 1` or `~ time`
+
+I have not plotted all the etas because there are a lot of them for the more complex models.
 
 ### Runtime of TS models (in seconds)
 
-``` r
-runtime <- data.frame(
-  full_name = names(all_models),
-  runtime = vapply(all_models,
-                   FUN = function(model_result)
-                     return(model_result$timing$toc["elapsed"] -
-                              model_result$timing$tic["elapsed"]),
-                   FUN.VALUE = 8),
-  row.names = NULL, stringsAsFactors = F)
+The y-axis is runtime; colors are the number of topics; the x axis is the number of iterations. The facets are the number of changepoints (columns) and the formula (rows).
 
-model_info <- left_join(model_names, runtime, by = "full_name")
-
-
-runtime_plot <- ggplot(data = model_info, aes(x = nit, y = runtime, color = k)) +
-  geom_boxplot() +
-  facet_grid(rows = vars(cov, ncpts), cols = vars(k), switch = "y") +
-  theme_bw() +
-  scale_color_viridis_d(end = .8)
-runtime_plot
-```
+More changepoints takes longer, and of course more iterations takes longer. The models speed up as the number of iterations increases (that is, 100000 iterations does not take 10x as long as 10000 iterations). Interestingly more topics does not necessarily take longer?
 
 ![](summary_files/figure-markdown_github/runtime-1.png)
 
-AICc of TS models
------------------
-
-``` r
-aiccs <- data.frame(
-  aicc = vapply(all_models,
-                FUN = function(ts_result)
-                  return(LDATS::AICc(ts_result$ts[[1]])),
-                FUN.VALUE = 30),
-  aic = vapply(all_models,
-               FUN = function(ts_result)
-                 return(ts_result$ts[[1]]$AIC),
-               FUN.VALUE = 30),
-  full_name = names(all_models),
-  row.names = NULL, stringsAsFactors = F)
-
-model_info <- left_join(model_info, aiccs, by = "full_name")
-
-aic_plot <- ggplot(data = model_info, aes(x = nit, y = aic, color = k)) +
-  geom_boxplot() +
-  facet_grid(rows = vars(cov, ncpts), cols = vars(k), switch = "y") +
-  theme_bw() +
-  scale_color_viridis_d(end = .8)
-
-aic_plot
-```
+AIC and AICc of TS models
+-------------------------
 
 ![](summary_files/figure-markdown_github/aicc-1.png)
 
-Why do matching models have the same AIC? They have different formulas and different projections:
-
-``` r
-loadd(models_1977_2_0_time_100, cache = cache)
-loadd(models_1977_2_0_intercept_100, cache = cache)
-
-models_1977_2_0_time_100$ts[[1]]$formula
-```
-
-    ## gamma ~ year
-    ## <environment: 0x7ff9e5a883f8>
-
-``` r
-models_1977_2_0_intercept_100$ts[[1]]$formula
-```
-
-    ## gamma ~ 1
-    ## <environment: 0x7ff9e648b400>
-
-``` r
-plot(models_1977_2_0_time_100$ts[[1]])
-```
-
-![](summary_files/figure-markdown_github/dig%20in-1.png)
-
-``` r
-plot(models_1977_2_0_intercept_100$ts[[1]])
-```
-
-![](summary_files/figure-markdown_github/dig%20in-2.png)
-
-``` r
-loadd(models_1977_2_1_time_100, cache = cache)
-loadd(models_1977_2_1_intercept_100, cache = cache)
-
-models_1977_2_1_time_100$ts[[1]]$formula
-```
-
-    ## gamma ~ year
-    ## <environment: 0x7ff9e9892190>
-
-``` r
-models_1977_2_1_intercept_100$ts[[1]]$formula
-```
-
-    ## gamma ~ 1
-    ## <environment: 0x7ff9e6d2bb70>
-
-``` r
-plot(models_1977_2_1_time_100$ts[[1]])
-```
-
-![](summary_files/figure-markdown_github/dig%20in-3.png)
-
-``` r
-plot(models_1977_2_1_intercept_100$ts[[1]])
-```
-
-![](summary_files/figure-markdown_github/dig%20in-4.png)
-
-Interestingly, AICc matches across nb iterations but does change for model configurations. My current guess is that this is so few iterations, 10000 vs. 100 doesn't give substantially different fits. More iterations might start to show changes - stay tuned for 100k from the hipergator.
-
-``` r
-aicc_plot <- ggplot(data = model_info, aes(x = nit, y = aicc, color = k)) +
-  geom_boxplot() +
-  facet_grid(rows = vars(cov, ncpts), cols = vars(k), switch = "y") +
-  theme_bw() +
-  scale_color_viridis_d(end = .8)
-
-aicc_plot
-```
-
 ![](summary_files/figure-markdown_github/aiccs-1.png)
+
+    ## # A tibble: 10 x 6
+    ##    k     ncpts cov       nit    aicc   aic
+    ##    <fct> <fct> <fct>     <fct> <dbl> <dbl>
+    ##  1 2     0     intercept 100    39.8  39.6
+    ##  2 2     0     intercept 10000  39.8  39.6
+    ##  3 2     0     intercept 1e.05  39.8  39.6
+    ##  4 2     0     time      100    39.4  39.0
+    ##  5 2     0     time      10000  39.4  39.0
+    ##  6 2     0     time      1e.05  39.4  39.0
+    ##  7 12    0     intercept 100   174.  158. 
+    ##  8 12    0     intercept 10000 174.  158. 
+    ##  9 12    0     intercept 1e.05 174.  158. 
+    ## 10 12    0     time      100   382.  180.
+
+AIC and AICc values appear not to change over number of iterations.
 
 Parameter estimates over iterations
 -----------------------------------
 
 ### Etas (coefficients within segments)
 
-``` r
-get_etas <- function(ts_result) {
-  etas_df <- ts_result$ts[[1]]$etas %>%
-    as.data.frame() %>%
-    mutate(draw = row_number())
-  
-  if(max(etas_df$draw) > 1000) {
-    draws_to_keep <- seq(1, .99 * max(etas_df$draw), by = max(etas_df$draw) / 10)
-    
-    draws_to_keep <- c(draws_to_keep, seq(max(draws_to_keep),
-                                           max(etas_df$draw),
-                                           by = max(etas_df$draw) / 100))
-    draws_to_keep <- unique(draws_to_keep)
-    
-    etas_df <- filter(etas_df, draw %in% draws_to_keep)
-  }
-  
-  
-  return(etas_df)
-}
+I have plotted etas for models with 2 topics, 0 or 1 changepoint, and `~1` or `~time`. Other configurations are possible but can be very large, because there are new etas for every additional topic-segment combination. I'm hoping the 100000 iteration plots will be visible at high resolution.
 
-etas <- lapply(all_models, FUN = get_etas)
+The facet strips are: number of changepoints; formula; parameter being estimated.
 
-etas <- bind_rows(etas, .id = "full_name") %>%
-  tidyr::gather(-draw, -full_name, key = "parameter", value = "estimate") %>%
-  filter(!is.na(estimate))
+    ## Warning: NAs introduced by coercion
 
-etas_info <- left_join(etas, model_info, by = "full_name") %>%
-  filter(k %in% c(2),
-         as.character(ncpts) %in% c("0", "1"))
+#### Etas 100 iterations
 
+![](summary_files/figure-markdown_github/etas%20100-1.png)
 
-etas_plot <- ggplot(data = etas_info, aes(x = draw, y = estimate, color = k)) +
-  geom_line() +
-  theme_bw() +
-  facet_wrap(facets = c("ncpts", "cov", "k", "nit"), scales = "free", strip.position = "top", ncol = 1, drop = TRUE)  +
-  scale_color_viridis_d(end = .8)
-etas_plot
-```
+#### Etas 10,000 iterations
 
-![](summary_files/figure-markdown_github/etas-1.png)
+![](summary_files/figure-markdown_github/etas%2010k-1.png)
+
+#### Etas 100,000 iterations
+
+    ## Warning: Removed 900000 rows containing missing values (geom_path).
+
+![](summary_files/figure-markdown_github/etas%20100k-1.png)
 
 ### Rhos (changepoint locations)
 
-``` r
-get_rhos <- function(ts_result) {
-  rhos_df <- ts_result$ts[[1]]$rhos %>%
-    as.data.frame() %>%
-    mutate(draw = row_number())
-  
-   if(max(rhos_df$draw) > 1000) {
-    draws_to_keep <- seq(1, .99 * max(rhos_df$draw), by = max(rhos_df$draw) / 10)
-    
-    draws_to_keep <- c(draws_to_keep, seq(max(draws_to_keep),
-                                           max(rhos_df$draw),
-                                           by =  max(rhos_df$draw) / 100))
-    draws_to_keep <- unique(draws_to_keep)
-    
-    rhos_df <- filter(rhos_df, draw %in% draws_to_keep)
-  }
-  
-  return(rhos_df)
-}
+I have plotted rhos for models with 2 topics, 1 or 4 changepoints, and `~1` or `~time`. The facet strips are number of changepoints; formula. The colors are the different changepoints being estimated.
 
-rhos <- lapply(all_models, FUN = get_rhos)
-```
+#### Rhos 100 iterations
 
-    ## Warning in max(rhos_df$draw): no non-missing arguments to max; returning -
-    ## Inf
+![](summary_files/figure-markdown_github/rhos%20100-1.png)
 
-    ## Warning in max(rhos_df$draw): no non-missing arguments to max; returning -
-    ## Inf
+#### Rhos 10,000 iterations
 
-    ## Warning in max(rhos_df$draw): no non-missing arguments to max; returning -
-    ## Inf
+![](summary_files/figure-markdown_github/rhos%201000-1.png)
 
-    ## Warning in max(rhos_df$draw): no non-missing arguments to max; returning -
-    ## Inf
+#### Rhos 100,000 iterations
 
-    ## Warning in max(rhos_df$draw): no non-missing arguments to max; returning -
-    ## Inf
-
-    ## Warning in max(rhos_df$draw): no non-missing arguments to max; returning -
-    ## Inf
-
-    ## Warning in max(rhos_df$draw): no non-missing arguments to max; returning -
-    ## Inf
-
-    ## Warning in max(rhos_df$draw): no non-missing arguments to max; returning -
-    ## Inf
-
-    ## Warning in max(rhos_df$draw): no non-missing arguments to max; returning -
-    ## Inf
-
-    ## Warning in max(rhos_df$draw): no non-missing arguments to max; returning -
-    ## Inf
-
-    ## Warning in max(rhos_df$draw): no non-missing arguments to max; returning -
-    ## Inf
-
-    ## Warning in max(rhos_df$draw): no non-missing arguments to max; returning -
-    ## Inf
-
-``` r
-rhos <- bind_rows(rhos, .id = "full_name") %>%
-  tidyr::gather(-draw, -full_name, key = "changepoint", value = "estimate") %>%
-  filter(!is.na(estimate)) %>%
-  mutate(changepoint = substr(changepoint, 2, nchar(changepoint)))
-
-rhos_info <- left_join(rhos, model_info, by = "full_name") %>%
-  filter(k %in% c(2, 12),
-         as.character(ncpts) %in% c("1", "4"))
-
-
-rhos_plot <- ggplot(data = rhos_info, aes(x = draw, y = estimate, color = changepoint)) +
-  geom_line() +
-  theme_bw() +
-  facet_wrap(facets = c("ncpts", "cov", "k", "nit"), scales = "free", strip.position = "top", ncol = 1, drop = TRUE) +
-  scale_color_viridis_d(end = .8)
-rhos_plot
-```
-
-![](summary_files/figure-markdown_github/rhos-1.png)
+![](summary_files/figure-markdown_github/rhos%20100000-1.png)

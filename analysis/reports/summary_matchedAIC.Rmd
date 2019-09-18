@@ -67,7 +67,7 @@ model_names <- as.data.frame(model_names) %>%
 
 The y-axis is runtime; colors are the number of topics; the x axis is the number of iterations. The facets are the number of changepoints (columns) and the formula (rows).
 
-More changepoints takes longer, and of course more iterations takes longer. The models speed up as the number of iterations increases (that is, 100000 iterations does not take 10x as long as 10000 iterations). Interestingly more topics does not necessarily take longer?
+More changepoints takes longer, and of course more iterations takes longer.
 
 ```{r runtime}
 runtime <- data.frame(

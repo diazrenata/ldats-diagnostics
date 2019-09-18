@@ -83,59 +83,59 @@ aic_plot
 Why do matching models have the same AIC? They have different formulas and different projections:
 
 ``` r
-loadd(models_1977_2_0L_time_100, cache = cache)
-loadd(models_1977_2_0L_intercept_100, cache = cache)
+loadd(models_1977_2_0_time_100, cache = cache)
+loadd(models_1977_2_0_intercept_100, cache = cache)
 
-models_1977_2_0L_time_100$ts[[1]]$formula
+models_1977_2_0_time_100$ts[[1]]$formula
 ```
 
     ## gamma ~ year
-    ## <environment: 0x7f8ce3b815b0>
+    ## <environment: 0x7ff9e5a883f8>
 
 ``` r
-models_1977_2_0L_intercept_100$ts[[1]]$formula
+models_1977_2_0_intercept_100$ts[[1]]$formula
 ```
 
     ## gamma ~ 1
-    ## <environment: 0x7f8ce46fc1d0>
+    ## <environment: 0x7ff9e648b400>
 
 ``` r
-plot(models_1977_2_0L_time_100$ts[[1]])
+plot(models_1977_2_0_time_100$ts[[1]])
 ```
 
 ![](summary_files/figure-markdown_github/dig%20in-1.png)
 
 ``` r
-plot(models_1977_2_0L_intercept_100$ts[[1]])
+plot(models_1977_2_0_intercept_100$ts[[1]])
 ```
 
 ![](summary_files/figure-markdown_github/dig%20in-2.png)
 
 ``` r
-loadd(models_1977_2_1L_time_100, cache = cache)
-loadd(models_1977_2_1L_intercept_100, cache = cache)
+loadd(models_1977_2_1_time_100, cache = cache)
+loadd(models_1977_2_1_intercept_100, cache = cache)
 
-models_1977_2_1L_time_100$ts[[1]]$formula
+models_1977_2_1_time_100$ts[[1]]$formula
 ```
 
     ## gamma ~ year
-    ## <environment: 0x7f8ce3f70940>
+    ## <environment: 0x7ff9e9892190>
 
 ``` r
-models_1977_2_1L_intercept_100$ts[[1]]$formula
+models_1977_2_1_intercept_100$ts[[1]]$formula
 ```
 
     ## gamma ~ 1
-    ## <environment: 0x7f8ce5d15ea0>
+    ## <environment: 0x7ff9e6d2bb70>
 
 ``` r
-plot(models_1977_2_1L_time_100$ts[[1]])
+plot(models_1977_2_1_time_100$ts[[1]])
 ```
 
 ![](summary_files/figure-markdown_github/dig%20in-3.png)
 
 ``` r
-plot(models_1977_2_1L_intercept_100$ts[[1]])
+plot(models_1977_2_1_intercept_100$ts[[1]])
 ```
 
 ![](summary_files/figure-markdown_github/dig%20in-4.png)
@@ -165,6 +165,18 @@ get_etas <- function(ts_result) {
     as.data.frame() %>%
     mutate(draw = row_number())
   
+  if(max(etas_df$draw) > 1000) {
+    draws_to_keep <- seq(1, .99 * max(etas_df$draw), by = max(etas_df$draw) / 10)
+    
+    draws_to_keep <- c(draws_to_keep, seq(max(draws_to_keep),
+                                           max(etas_df$draw),
+                                           by = max(etas_df$draw) / 100))
+    draws_to_keep <- unique(draws_to_keep)
+    
+    etas_df <- filter(etas_df, draw %in% draws_to_keep)
+  }
+  
+  
   return(etas_df)
 }
 
@@ -175,14 +187,14 @@ etas <- bind_rows(etas, .id = "full_name") %>%
   filter(!is.na(estimate))
 
 etas_info <- left_join(etas, model_info, by = "full_name") %>%
-  filter(k %in% c(2,3),
-         as.character(ncpts) %in% c("0L", "1L"))
+  filter(k %in% c(2),
+         as.character(ncpts) %in% c("0", "1"))
 
 
 etas_plot <- ggplot(data = etas_info, aes(x = draw, y = estimate, color = k)) +
   geom_line() +
   theme_bw() +
-  facet_grid(rows = vars(ncpts, cov, k, parameter), cols = vars(nit), scales = "free", switch = "y", drop = TRUE) +
+  facet_wrap(facets = c("ncpts", "cov", "k", "nit"), scales = "free", strip.position = "top", ncol = 1, drop = TRUE)  +
   scale_color_viridis_d(end = .8)
 etas_plot
 ```
@@ -197,25 +209,74 @@ get_rhos <- function(ts_result) {
     as.data.frame() %>%
     mutate(draw = row_number())
   
+   if(max(rhos_df$draw) > 1000) {
+    draws_to_keep <- seq(1, .99 * max(rhos_df$draw), by = max(rhos_df$draw) / 10)
+    
+    draws_to_keep <- c(draws_to_keep, seq(max(draws_to_keep),
+                                           max(rhos_df$draw),
+                                           by =  max(rhos_df$draw) / 100))
+    draws_to_keep <- unique(draws_to_keep)
+    
+    rhos_df <- filter(rhos_df, draw %in% draws_to_keep)
+  }
+  
   return(rhos_df)
 }
 
 rhos <- lapply(all_models, FUN = get_rhos)
+```
 
+    ## Warning in max(rhos_df$draw): no non-missing arguments to max; returning -
+    ## Inf
+
+    ## Warning in max(rhos_df$draw): no non-missing arguments to max; returning -
+    ## Inf
+
+    ## Warning in max(rhos_df$draw): no non-missing arguments to max; returning -
+    ## Inf
+
+    ## Warning in max(rhos_df$draw): no non-missing arguments to max; returning -
+    ## Inf
+
+    ## Warning in max(rhos_df$draw): no non-missing arguments to max; returning -
+    ## Inf
+
+    ## Warning in max(rhos_df$draw): no non-missing arguments to max; returning -
+    ## Inf
+
+    ## Warning in max(rhos_df$draw): no non-missing arguments to max; returning -
+    ## Inf
+
+    ## Warning in max(rhos_df$draw): no non-missing arguments to max; returning -
+    ## Inf
+
+    ## Warning in max(rhos_df$draw): no non-missing arguments to max; returning -
+    ## Inf
+
+    ## Warning in max(rhos_df$draw): no non-missing arguments to max; returning -
+    ## Inf
+
+    ## Warning in max(rhos_df$draw): no non-missing arguments to max; returning -
+    ## Inf
+
+    ## Warning in max(rhos_df$draw): no non-missing arguments to max; returning -
+    ## Inf
+
+``` r
 rhos <- bind_rows(rhos, .id = "full_name") %>%
   tidyr::gather(-draw, -full_name, key = "changepoint", value = "estimate") %>%
   filter(!is.na(estimate)) %>%
   mutate(changepoint = substr(changepoint, 2, nchar(changepoint)))
 
 rhos_info <- left_join(rhos, model_info, by = "full_name") %>%
-  filter(k %in% c(2,3),
-         as.character(ncpts) %in% c("1L", "4L"))
+  filter(k %in% c(2, 12),
+         as.character(ncpts) %in% c("1", "4"))
 
 
 rhos_plot <- ggplot(data = rhos_info, aes(x = draw, y = estimate, color = changepoint)) +
   geom_line() +
   theme_bw() +
-  facet_grid(rows = vars(ncpts, cov, k), cols = vars(nit), scales = "free", switch = "y", drop = TRUE) +
+  facet_wrap(facets = c("ncpts", "cov", "k", "nit"), scales = "free", strip.position = "top", ncol = 1, drop = TRUE) +
   scale_color_viridis_d(end = .8)
 rhos_plot
 ```

@@ -183,8 +183,13 @@ etas_plots <- list()
 for(i in 1:length(levels(etas_info$nit))) {
   these_etas <- filter(etas_info, nit == levels(nit)[i])
   
+
+  if(i < 3) {
   lsize <- max(.05, 100 / as.numeric(as.character(these_etas$nit[1])))
-  
+  } else {
+    lsize <- .05
+  }
+    
   etas_plots[[i]] <- ggplot(data = these_etas, aes(x = draw, y = estimate)) +
   geom_line(size = lsize) +
   theme_bw() +

@@ -56,8 +56,6 @@ I have plotted etas for models with 2 topics, 0 or 1 changepoint, and `~1` or `~
 
 The facet strips are: number of changepoints; formula; parameter being estimated.
 
-    ## Warning: NAs introduced by coercion
-
 #### Etas 100 iterations
 
 ![](summary_files/figure-markdown_github/etas%20100-1.png)
@@ -67,8 +65,6 @@ The facet strips are: number of changepoints; formula; parameter being estimated
 ![](summary_files/figure-markdown_github/etas%2010k-1.png)
 
 #### Etas 100,000 iterations
-
-    ## Warning: Removed 900000 rows containing missing values (geom_path).
 
 ![](summary_files/figure-markdown_github/etas%20100k-1.png)
 

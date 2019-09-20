@@ -13,18 +13,20 @@ seed <- 1977
 
 ncpts <- c(0, 1, 4)
 
-ntopics <- c(2, 12)
+ntopics <- c(2, 5)
 
 forms <- c("intercept", "time")
 
-nits <- c(100, 10000, 100000)
+nits <- c(100, 1000, 10000)
 
+temps <- c(2 ^ 4, 2 ^ 6, 2 ^ 8)
 
 pipeline <- drake_plan(
   portal_annual = get_portal_annual_data(),
-  models = target(ldats_wrapper(portal_annual, seed = sd, ntopics = k, ncpts = cpts, formulas = form, nit = nbits),
+  models = target(ldats_wrapper(portal_annual, seed = sd, ntopics = k, ncpts = cpts, formulas = form, nit = nbits, penult_temp = ptemps),
                   transform = cross(sd = !!seed, k = !!ntopics,
-                                    cpts = !!ncpts, form = !!forms, nbits = !!nits)),
+                                    cpts = !!ncpts, form = !!forms, nbits = !!nits,
+                                    ptemps =  !!temps)),
   all_models = target(MATSS::collect_analyses(list(models)),
                         transform = combine(models))
 )

@@ -1,4 +1,4 @@
-ldats_wrapper <- function(data_list, seed, ntopics, ncpts, formulas, nit = 100) {
+ldats_wrapper <- function(data_list, seed, ntopics, ncpts, formulas, nit = 100, penult_temp = 2 ^ 6) {
   
  tictoc::tic()  
   
@@ -9,11 +9,11 @@ ldats_wrapper <- function(data_list, seed, ntopics, ncpts, formulas, nit = 100) 
   
   if(formulas == "time") {
     
-    thists <-  LDATS::TS_on_LDA(LDA_models = thislda, document_covariate_table = data_list$covariates, nchangepoints = ncpts, formulas = c(~ year), weights =LDATS::document_weights(data_list$abundance), timename = "year", control = list(nit = nit))
+    thists <-  LDATS::TS_on_LDA(LDA_models = thislda, document_covariate_table = data_list$covariates, nchangepoints = ncpts, formulas = c(~ year), weights =LDATS::document_weights(data_list$abundance), timename = "year", control = list(nit = nit, penultimate_temp = penult_temp, magnitude = 4))
     
   } else (
     
-    thists <-  LDATS::TS_on_LDA(LDA_models = thislda, document_covariate_table = data_list$covariates, nchangepoints = ncpts, formulas = c(~ 1), weights =LDATS::document_weights(data_list$abundance), timename = "year", control = list(nit = nit, magnitude = 4))
+    thists <-  LDATS::TS_on_LDA(LDA_models = thislda, document_covariate_table = data_list$covariates, nchangepoints = ncpts, formulas = c(~ 1), weights =LDATS::document_weights(data_list$abundance), timename = "year", control = list(nit = nit, penultimate_temp = penult_temp, magnitude = 4))
     
   )
   timing <- tictoc::toc()  

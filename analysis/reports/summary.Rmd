@@ -16,9 +16,11 @@ The current diagnostics are:
 
 The current model configurations are all combinations of:
 * LDA seed = 1977
-* 2 or 12 topics
+* 2 or 5 topics
 * 0, 1, or 4 changepoints
 * Formulas `~ 1` or `~ time`
+* 100, 1000, or 10000 iterations
+* `penultimate_temp` = 2^4, 2^6, 2^8 (`LDATS` default is 2^6)
 
 I have not plotted all the etas because there are a lot of them for the more complex models. 
 
@@ -53,9 +55,11 @@ model_names <- as.data.frame(model_names) %>%
          k = V3,
          ncpts = V4,
          cov = V5,
-         nit = V6) %>%
+         nit = V6,
+         penult_temp = V7) %>%
   mutate(k = factor(k),
          ncpts = as.factor(ncpts),
+         penult_temp = as.factor(penult_temp),
          obj_index = row_number(),
          full_name = names(all_models)) %>%
   mutate(k = factor(k, levels = as.character(sort(as.numeric(levels(k))))))
@@ -65,9 +69,9 @@ model_names <- as.data.frame(model_names) %>%
 
 ### Runtime of TS models (in seconds)
 
-The y-axis is runtime; colors are the number of topics; the x axis is the number of iterations. The facets are the number of changepoints (columns) and the formula (rows).
+The y-axis is runtime. The x axis is number of changepoints. The facet columns are the penultimate temperature, and the facet rows are covariate nested within number of topics.
 
-More changepoints takes longer, and of course more iterations takes longer. The models speed up as the number of iterations increases (that is, 100000 iterations does not take 10x as long as 10000 iterations). Interestingly more topics does not necessarily take longer?
+More changepoints takes longer, and of course more iterations takes longer. The models speed up as the number of iterations increases (that is, 100000 iterations does not take 10x as long as 10000 iterations). The number of topics, penultimate temperature, and covariate don't impact runtime nearly as much as nit and ncpts. 
 
 ```{r runtime}
 runtime <- data.frame(
@@ -82,9 +86,9 @@ runtime <- data.frame(
 model_info <- left_join(model_names, runtime, by = "full_name")
 
 
-runtime_plot <-ggplot(data = model_info, aes(x = nit, y = runtime, color = k)) +
+runtime_plot <-ggplot(data = model_info, aes(x = ncpts, y = runtime, color = penult_temp)) +
 geom_boxplot() +
-  facet_grid(rows = vars(cov), cols = vars(ncpts), switch = "y") +
+  facet_grid(rows = vars(k, cov), cols = vars(nit), switch = "y") +
   theme_bw() + 
   ggtitle("Runtime") +
     scale_color_viridis_d(end = .8)
@@ -112,7 +116,7 @@ model_info <- left_join(model_info, aiccs, by = "full_name")
 
 aic_plot <- ggplot(data = model_info, aes(x = nit, y = aic, color = k)) +
   geom_boxplot() +
-  facet_grid(rows = vars(cov), cols = vars(ncpts), switch = "y") +
+  facet_grid(rows = vars(cov), cols = vars(ncpts, penult_temp), switch = "y") +
   theme_bw() +
   scale_color_viridis_d(end = .8) +
   ggtitle("AIC")
@@ -125,7 +129,7 @@ aic_plot
 
 aicc_plot <- ggplot(data = model_info, aes(x = nit, y = aicc, color = k)) +
   geom_boxplot() +
-  facet_grid(rows = vars(cov), cols = vars(ncpts), switch = "y") +
+  facet_grid(rows = vars(cov), cols = vars(ncpts, penult_temp), switch = "y") +
   theme_bw() +
   scale_color_viridis_d(end = .8) +
   ggtitle("AICc")
@@ -137,25 +141,27 @@ aicc_plot
 ```{r aic matched}
 
 aic_match <- model_info %>%
-  group_by(ncpts, k, cov) %>%
+  group_by(ncpts, k, cov, penult_temp) %>%
   arrange(.by_group = T) %>%
   ungroup() %>%
   select(-seed, -obj_index, -full_name, -runtime)
 
 print(aic_match[1:10, ])
 
+print(aic_match[37:47, ])
+
 ```
 
-AIC and AICc values appear not to change over number of iterations.
+AIC and AICc do not change, out to 7 figures, over iterations or temperature for 0 changepoint models. For models with changepoints, AIC and AICc change numerically but generally negligably (<2 units). 
 
 ## Parameter estimates over iterations
 
 ### Etas (coefficients within segments)
 
 
-I have plotted etas for models with 2 topics, 0 or 1 changepoint, and `~1` or `~time`. Other configurations are possible but can be very large, because there are new etas for every additional topic-segment combination. I'm hoping the 100000 iteration plots will be visible at high resolution.
+I have plotted etas for models with 2 topics, 0 or 1 changepoint, and `~1` or `~time`. Other configurations are possible but can be very large, because there are new etas for every additional topic-segment combination. I'm hoping the 10000 iteration plots will be visible at high resolution.
 
-The facet strips are: number of changepoints; formula; parameter being estimated.
+The facet strips are: number of changepoints; formula; temperature; parameter being estimated.
 
 
 ```{r etas}
@@ -193,7 +199,7 @@ for(i in 1:length(levels(etas_info$nit))) {
   etas_plots[[i]] <- ggplot(data = these_etas, aes(x = draw, y = estimate)) +
   geom_line(size = lsize) +
   theme_bw() +
-  facet_wrap(facets = c("ncpts", "cov", "parameter"), scales = "free", strip.position = "top", ncol = 1, drop = TRUE)  +
+  facet_wrap(facets = c("ncpts", "cov", "penult_temp", "parameter"), scales = "free", strip.position = "top", ncol = 1, drop = TRUE)  +
   scale_color_viridis_d(end = .8) +
     ggtitle(paste0("Etas: ", these_etas$nit[1], " iterations"))
   
@@ -204,16 +210,16 @@ for(i in 1:length(levels(etas_info$nit))) {
 
 #### Etas 100 iterations
 
-```{r etas 100, fig.width = 10, fig.height = 20}
+```{r etas 100, fig.width = 10, fig.height = 60}
 
 etas_plots[[1]]
 
 ```
 
 
-#### Etas 10,000 iterations
+#### Etas 1000 iterations
 
-```{r etas 10k, fig.width = 20, fig.height = 20}
+```{r etas 1k, fig.width = 20, fig.height = 60}
 
 etas_plots[[2]]
 
@@ -222,7 +228,7 @@ etas_plots[[2]]
 
 #### Etas 100,000 iterations
 
-```{r etas 100k, fig.width = 40, fig.height = 20}
+```{r etas 100k, fig.width = 40, fig.height = 60}
 
 etas_plots[[3]]
 
@@ -230,7 +236,7 @@ etas_plots[[3]]
 
 ### Rhos (changepoint locations)
 
-I have plotted rhos for models with 2 topics, 1 or 4 changepoints, and `~1` or `~time`. The facet strips are number of changepoints; formula. The colors are the different changepoints being estimated.
+I have plotted rhos for models with 2 topics, 1 or 4 changepoints, and `~1` or `~time`. The facet strips are number of changepoints; temperature; formula. The colors are the different changepoints being estimated.
 
 ```{r rhos}
 
@@ -268,7 +274,7 @@ for(i in 1:length(levels(rhos_info$nit))) {
   rhos_plots[[i]] <- ggplot(data = these_rhos, aes(x = draw, y = estimate, color = changepoint)) +
   geom_line(size = lsize) +
   theme_bw() +
-  facet_wrap(facets = c("ncpts", "cov"), scales = "free", strip.position = "top", ncol = 1, drop = TRUE)  +
+  facet_wrap(facets = c("ncpts", "cov", "penult_temp"), scales = "free", strip.position = "top", ncol = 1, drop = TRUE)  +
   scale_color_viridis_d(end = .8) +
     ggtitle(paste0("Rhos: ", these_rhos$nit[1], " iterations"))
   
@@ -278,23 +284,23 @@ for(i in 1:length(levels(rhos_info$nit))) {
 
 #### Rhos 100 iterations
 
-```{r rhos 100, fig.width = 10, fig.height = 20}
+```{r rhos 100, fig.width = 10, fig.height = 60}
 
 rhos_plots[[1]]
 
 ```
 
-#### Rhos 10,000 iterations
+#### Rhos 1000 iterations
 
-```{r rhos 1000, fig.width = 20, fig.height = 15}
+```{r rhos 1000, fig.width = 20, fig.height = 60}
 
 rhos_plots[[2]]
 
 ```
 
-#### Rhos 100,000 iterations
+#### Rhos 10,000 iterations
 
-```{r rhos 100000, fig.width = 20, fig.height = 15}
+```{r rhos 10000, fig.width = 20, fig.height = 60}
 
 rhos_plots[[3]]
 

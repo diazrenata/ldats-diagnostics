@@ -20,7 +20,7 @@ I have not plotted all the etas because there are a lot of them for the more com
 
 The y-axis is runtime. The x axis is number of changepoints. The facet columns are the penultimate temperature, and the facet rows are covariate nested within number of topics.
 
-More changepoints takes longer, and of course more iterations takes longer. The models speed up as the number of iterations increases (that is, 10000 iterations does not take 10x as long as 1000 iterations). The number of topics, penultimate temperature, and covariate don't impact runtime nearly as much as nit and ncpts.
+More changepoints takes longer, and of course more iterations takes longer. Up to 10000 iterations there isn't an obvious improvement in speed as the iterations continue, but the runs I did previously with 100000 iterations did speed up. So 10000 seems to take v roughly 10x as long as 1000, but 100000 does not take 10x as long as 10000. The number of topics, penultimate temperature, and covariate don't impact runtime nearly as much as nit and ncpts.
 
 ![](summary_files/figure-markdown_github/runtime-1.png)
 

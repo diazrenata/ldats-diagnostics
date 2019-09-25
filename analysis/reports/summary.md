@@ -12,7 +12,14 @@ The current diagnostics are:
 -   Etas: Estimates of the intercept & covariate coefficients (if applicable) for the TS fit. For a model with `n` changepoints and `k` topics, there will be `(n + 1) * (k - 1)` etas.
 -   Rhos: Estimates of the changepoint locations (if applicable). There is one rho for every changepoint in a model.
 
-The current model configurations are all combinations of: \* LDA seed = 1977 \* 2 or 5 topics \* 0, 1, or 4 changepoints \* Formulas `~ 1` or `~ time` \* 100, 1000, or 10000 iterations \* `penultimate_temp` = 2^4, 2^6, 2^8 (`LDATS` default is 2^6)
+The current model configurations are all combinations of: 
+
+-   LDA seed = 1977
+-   2 or 5 topics
+-   0, 1, or 4 changepoints 
+-   Formulas `~ 1` or `~ time` 
+-   100, 1000, or 10000 iterations 
+-   `penultimate_temp` = 2^4, 2^6, 2^8 (`LDATS` default is 2^6)
 
 I have not plotted all the etas because there are a lot of them for the more complex models.
 

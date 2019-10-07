@@ -162,12 +162,14 @@ AIC and AICc do not change, out to 7 figures, over iterations or temperature for
 ### Etas (coefficients within segments)
 
 
-I have plotted etas for models with 2 topics, 0 or 1 changepoint, and `~1` or `~time`. Other configurations are possible but can be very large, because there are new etas for every additional topic-segment combination. I'm hoping the 10000 iteration plots will be visible at high resolution.
+~I have plotted etas for models with 2 topics, 0 or 1 changepoint, and `~1` or `~time`. Other configurations are possible but can be very large, because there are new etas for every additional topic-segment combination. I'm hoping the 10000 iteration plots will be visible at high resolution.~
 
-The facet strips are: number of changepoints; formula; temperature; parameter being estimated.
+~The facet strips are: number of changepoints; formula; temperature; parameter being estimated.~
+
+Now I have plotted the mean and SD of etas estimates, split into and calculated within segments of 100 draws. The y axis is the mean or sd estimate, and the x axis is the draw (/100). Color is the nb of iterations, and the facet strips are ncpts, cov, temp, and parameter. 
 
 
-```{r etas, eval = T, fig.width = 24, fig.height = 48}
+```{r etas, eval = T}
 
 get_etas <- function(ts_result) {
   etas_df <- ts_result$ts[[1]]$etas %>%
@@ -217,19 +219,28 @@ for(i in 1:length(levels(etas_info$nit))) {
 etas_100ths <-  unique(select(etas_info, ncpts, cov, penult_temp, parameter, nit, full_name, draw_100th, mean_100th, sd_100th))
 
 etas_means_100ths <- ggplot(data =etas_100ths, aes(x = draw_100th, y = mean_100th, color = nit)) +
-  facet_wrap(facets = c("ncpts", "cov", "penult_temp", "parameter"), ncol = 3) +
+  facet_wrap(facets = c("ncpts", "cov", "penult_temp", "parameter"), ncol = 3, scales = "free") +
   geom_line(size = 2) +
   theme_bw() +
-  scale_color_viridis_d(end = .8)
+  scale_color_viridis_d(end = .8) +
+  ggtitle("Mean of parameter estimates")
+```
 
+#### Mean plots
+```{r eta means plots, fig.width = 24, fig.height = 48}
 etas_means_100ths
 
+```
 
+#### SD plots
+
+```{r eta sd plots, fig.width = 24, fig.height = 48}
 etas_sd_100ths <- ggplot(data =etas_100ths, aes(x = draw_100th, y = sd_100th, color = nit)) +
-  facet_wrap(facets = c("ncpts", "cov", "penult_temp", "parameter"), ncol = 3) +
+  facet_wrap(facets = c("ncpts", "cov", "penult_temp", "parameter"), ncol = 3, scales = "free") +
   geom_line(size = 2) +
   theme_bw() +
-  scale_color_viridis_d(end = .8)
+  scale_color_viridis_d(end = .8) +
+  ggtitle("SD of parameter estimates")
 
 etas_sd_100ths
 

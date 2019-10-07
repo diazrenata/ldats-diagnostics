@@ -12,7 +12,14 @@ The current diagnostics are:
 -   Etas: Estimates of the intercept & covariate coefficients (if applicable) for the TS fit. For a model with `n` changepoints and `k` topics, there will be `(n + 1) * (k - 1)` etas.
 -   Rhos: Estimates of the changepoint locations (if applicable). There is one rho for every changepoint in a model.
 
-The current model configurations are all combinations of: \* LDA seed = 1977 \* 2 or 5 topics \* 0, 1, or 4 changepoints \* Formulas `~ 1` or `~ time` \* 100, 1000, or 10000 iterations \* `penultimate_temp` = 2^4, 2^6, 2^8 (`LDATS` default is 2^6)
+The current model configurations are all combinations of: 
+
+-   LDA seed = 1977
+-   2 or 5 topics
+-   0, 1, or 4 changepoints 
+-   Formulas `~ 1` or `~ time` 
+-   100, 1000, or 10000 iterations 
+-   `penultimate_temp` = 2^4, 2^6, 2^8 (`LDATS` default is 2^6)
 
 I have not plotted all the etas because there are a lot of them for the more complex models.
 
@@ -20,12 +27,21 @@ I have not plotted all the etas because there are a lot of them for the more com
 
 The y-axis is runtime. The x axis is number of changepoints. The facet columns are the penultimate temperature, and the facet rows are covariate nested within number of topics.
 
-More changepoints takes longer, and of course more iterations takes longer. The models speed up as the number of iterations increases (that is, 100000 iterations does not take 10x as long as 10000 iterations). The number of topics, penultimate temperature, and covariate don't impact runtime nearly as much as nit and ncpts.
+More changepoints takes longer, and of course more iterations takes longer. Up to 10000 iterations there isn't an obvious improvement in speed as the iterations continue, but the runs I did previously with 100000 iterations did speed up. So 10000 seems to take v roughly 10x as long as 1000, but 100000 does not take 10x as long as 10000. The number of topics, penultimate temperature, and covariate don't impact runtime nearly as much as nit and ncpts.
 
 ![](summary_files/figure-markdown_github/runtime-1.png)
 
 AIC and AICc of TS models
 -------------------------
+
+The x axis is the number of iterations, and the y axis is the AIC (ts_model$AIC). Green is 5 topics and purple is 2 topics. The facet rows are ~intercept on top and ~time on the bottom. The facet columns are penultimate temperature nested within number of changepoints (0, 1, 4). 
+
+
+AIC and AICc do not change, out to 7 figures, over iterations or temperature for 0 changepoint models. For models with changepoints, AIC and AICc change numerically but negligably (&lt;2 units) over different numbers of iterations/temperatures. 
+
+
+2 topics has consistently lower AIC than 5 topics, except for 4 changepoints and ~time.
+
 
 ![](summary_files/figure-markdown_github/aicc-1.png)
 
@@ -59,11 +75,12 @@ The AICcs are suspect right now.
     ##  9 2     1     intercept 10000 64           32.7  31.7
     ## 10 2     1     time      100   16           38.8  36.0
     ## 11 2     1     time      1000  16           38.5  35.8
-
-AIC and AICc do not change, out to 7 figures, over iterations or temperature for 0 changepoint models. For models with changepoints, AIC and AICc change numerically but generally negligably (&lt;2 units).
+    
 
 Parameter estimates over iterations
 -----------------------------------
+
+I am not completely sure how to interpret these plots. The strangest thing to me is that the (mean) estimates don't appear to change much over even a large number of iterations. That is consistent with AIC and AICc not changing, but I am not sure how to interpret it.
 
 ### Etas (coefficients within segments)
 

@@ -29,7 +29,7 @@ AIC and AICc of TS models
 
 ![](summary_files/figure-markdown_github/aicc-1.png)
 
-![](summary_files/figure-markdown_github/aiccs-1.png)
+The AICcs are suspect right now.
 
     ## # A tibble: 10 x 7
     ##    k     ncpts cov       nit   penult_temp  aicc   aic
@@ -71,17 +71,13 @@ I have plotted etas for models with 2 topics, 0 or 1 changepoint, and `~1` or `~
 
 The facet strips are: number of changepoints; formula; temperature; parameter being estimated.
 
-#### Etas 100 iterations
+![](summary_files/figure-markdown_github/etas-1.png)![](summary_files/figure-markdown_github/etas-2.png)
 
-![](summary_files/figure-markdown_github/etas%20100-1.png)
+#### Etas 100 iterations
 
 #### Etas 1000 iterations
 
-![](summary_files/figure-markdown_github/etas%201k-1.png)
-
 #### Etas 100,000 iterations
-
-![](summary_files/figure-markdown_github/etas%20100k-1.png)
 
 ### Rhos (changepoint locations)
 
@@ -89,12 +85,6 @@ I have plotted rhos for models with 2 topics, 1 or 4 changepoints, and `~1` or `
 
 #### Rhos 100 iterations
 
-![](summary_files/figure-markdown_github/rhos%20100-1.png)
-
 #### Rhos 1000 iterations
 
-![](summary_files/figure-markdown_github/rhos%201000-1.png)
-
 #### Rhos 10,000 iterations
-
-![](summary_files/figure-markdown_github/rhos%2010000-1.png)

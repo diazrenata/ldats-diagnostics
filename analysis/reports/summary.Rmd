@@ -125,7 +125,10 @@ aic_plot
 
 ```
 
-```{r aiccs}
+The AICcs are suspect right now.
+
+
+```{r aiccs, eval = F}
 
 aicc_plot <- ggplot(data = model_info, aes(x = nit, y = aicc, color = k)) +
   geom_boxplot() +
@@ -164,20 +167,25 @@ I have plotted etas for models with 2 topics, 0 or 1 changepoint, and `~1` or `~
 The facet strips are: number of changepoints; formula; temperature; parameter being estimated.
 
 
-```{r etas}
+```{r etas, eval = T, fig.width = 24, fig.height = 48}
 
 get_etas <- function(ts_result) {
   etas_df <- ts_result$ts[[1]]$etas %>%
     as.data.frame() %>%
-    mutate(draw = row_number())
+    mutate(draw = row_number()) %>%
+    mutate(draw_100th = ceiling(draw / 100))
   return(etas_df)
 }
 
 etas <- lapply(all_models, FUN = get_etas)
 
 etas <- bind_rows(etas, .id = "full_name") %>%
-  tidyr::gather(-draw, -full_name, key = "parameter", value = "estimate") %>%
-  filter(!is.na(estimate))
+  tidyr::gather(-draw, -draw_100th, -full_name, key = "parameter", value = "estimate") %>%
+  filter(!is.na(estimate)) %>%
+  group_by(full_name, draw_100th, parameter) %>%
+  mutate(mean_100th = mean(estimate),
+         sd_100th = sd(estimate)) %>%
+  ungroup()
 
 etas_info <- left_join(etas, model_info, by = "full_name") %>%
   filter(as.character(k) %in% c("2"),
@@ -205,12 +213,32 @@ for(i in 1:length(levels(etas_info$nit))) {
   
 }
 
+
+etas_100ths <-  unique(select(etas_info, ncpts, cov, penult_temp, parameter, nit, full_name, draw_100th, mean_100th, sd_100th))
+
+etas_means_100ths <- ggplot(data =etas_100ths, aes(x = draw_100th, y = mean_100th, color = nit)) +
+  facet_wrap(facets = c("ncpts", "cov", "penult_temp", "parameter"), ncol = 3) +
+  geom_line(size = 2) +
+  theme_bw() +
+  scale_color_viridis_d(end = .8)
+
+etas_means_100ths
+
+
+etas_sd_100ths <- ggplot(data =etas_100ths, aes(x = draw_100th, y = sd_100th, color = nit)) +
+  facet_wrap(facets = c("ncpts", "cov", "penult_temp", "parameter"), ncol = 3) +
+  geom_line(size = 2) +
+  theme_bw() +
+  scale_color_viridis_d(end = .8)
+
+etas_sd_100ths
+
 ```
 
 
 #### Etas 100 iterations
 
-```{r etas 100, fig.width = 10, fig.height = 60}
+```{r etas 100, fig.width = 10, fig.height = 60, eval = F}
 
 etas_plots[[1]]
 
@@ -219,7 +247,7 @@ etas_plots[[1]]
 
 #### Etas 1000 iterations
 
-```{r etas 1k, fig.width = 20, fig.height = 60}
+```{r etas 1k, fig.width = 20, fig.height = 60, eval = F}
 
 etas_plots[[2]]
 
@@ -228,7 +256,7 @@ etas_plots[[2]]
 
 #### Etas 100,000 iterations
 
-```{r etas 100k, fig.width = 40, fig.height = 60}
+```{r etas 100k, fig.width = 40, fig.height = 60, eval= F}
 
 etas_plots[[3]]
 
@@ -238,7 +266,7 @@ etas_plots[[3]]
 
 I have plotted rhos for models with 2 topics, 1 or 4 changepoints, and `~1` or `~time`. The facet strips are number of changepoints; temperature; formula. The colors are the different changepoints being estimated.
 
-```{r rhos}
+```{r rhos, eval = F}
 
 get_rhos <- function(ts_result) {
   rhos_df <- ts_result$ts[[1]]$rhos %>%
@@ -284,7 +312,7 @@ for(i in 1:length(levels(rhos_info$nit))) {
 
 #### Rhos 100 iterations
 
-```{r rhos 100, fig.width = 10, fig.height = 60}
+```{r rhos 100, fig.width = 10, fig.height = 60, eval = F}
 
 rhos_plots[[1]]
 
@@ -292,7 +320,7 @@ rhos_plots[[1]]
 
 #### Rhos 1000 iterations
 
-```{r rhos 1000, fig.width = 20, fig.height = 60}
+```{r rhos 1000, fig.width = 20, fig.height = 60, eval = F}
 
 rhos_plots[[2]]
 
@@ -300,7 +328,7 @@ rhos_plots[[2]]
 
 #### Rhos 10,000 iterations
 
-```{r rhos 10000, fig.width = 20, fig.height = 60}
+```{r rhos 10000, fig.width = 20, fig.height = 60, eval = F}
 
 rhos_plots[[3]]
 

@@ -1,0 +1,151 @@
+---
+title: "Echoes in parameter estimates"
+output: github_document
+---
+
+Zooming in on some LDA+TS models that appear to have tightly coupled parameter estimates. 
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(drake)
+library(dplyr)
+library(ggplot2)
+
+## Set up the cache and config
+db <- DBI::dbConnect(RSQLite::SQLite(), here::here("drake", "drake-cache.sqlite"))
+cache <- storr::storr_dbi("datatable", "keystable", db)
+
+```
+
+```{r load stuff}
+loadd(all_models, cache = cache)
+
+model_names <- lapply(as.list(names(all_models)), 
+                      FUN = function(model_result_name)
+                        return(strsplit(model_result_name, "_")[[1]]))
+
+names(model_names) = 1:length(model_names)
+model_names <- bind_rows(model_names) %>%
+  t()
+
+model_names <- as.data.frame(model_names) %>%
+  select(-V1) %>%
+  rename(seed = V2,
+         k = V3,
+         ncpts = V4,
+         cov = V5,
+         nit = V6,
+         penult_temp = V7) %>%
+  mutate(k = factor(k),
+         ncpts = as.factor(ncpts),
+         penult_temp = as.factor(penult_temp),
+         obj_index = row_number(),
+         full_name = names(all_models)) %>%
+  mutate(k = factor(k, levels = as.character(sort(as.numeric(levels(k))))))
+
+```
+
+Beginning with 2 topics.
+
+## Matched etas
+
+As an example, 0 changepoints, time, penult_temp = 64. 
+
+```{r matched eta plots, fig.width = 12, fig.height = 4}
+
+matched_names <- model_names %>%
+  filter(k == 2,
+         ncpts == 0,
+         cov == "time",
+         penult_temp == 64)
+
+matched_models <- all_models[matched_names$obj_index]
+
+matched_etas <- lapply(matched_models,
+                       FUN = function(model)
+                         return(model$ts[[1]]$etas))
+
+matched_etas <- lapply(matched_etas, 
+                       FUN = function(matr)
+                         return(mutate(as.data.frame(matr), iteration = row_number())))
+
+names(matched_etas) <- matched_names$full_name
+
+matched_etas <- bind_rows(matched_etas, .id = "model_name")
+
+colnames(matched_etas) <- c("model_name", "intercept", "year", "iteration")
+
+# 
+# matched_etas <- matched_etas %>%
+#   tidyr::gather(-model_name, -iteration, key = "par", value = "val")
+# 
+# matched_etas_100 <- ggplot(data = filter(matched_etas, model_name == "models_1977_2_0_time_100_64"), aes(x = iteration, y = val)) +
+#   geom_line() +
+#   facet_wrap(vars(par), scales = "free", strip.position = "top") +
+#   theme_bw()
+
+matched_etas_plot <- ggplot(data = matched_etas, aes(x =intercept, y = year)) +
+  geom_point(alpha = .8) + 
+  theme_bw() +
+  facet_wrap(vars(model_name), scales = "free", strip.position = "top")
+
+matched_etas_plot
+
+```
+
+## Mirrored etas
+
+As an example, 1 changepoint, time, penult_temp = 64. 
+
+
+```{r mirrored eta plots, fig.width = 12, fig.height = 4}
+
+mirrored_names <- model_names %>%
+  filter(k == 2,
+         ncpts == 1,
+         cov == "time",
+         penult_temp == 64)
+
+mirrored_models <- all_models[mirrored_names$obj_index]
+
+mirrored_etas <- lapply(mirrored_models,
+                       FUN = function(model)
+                         return(model$ts[[1]]$etas))
+
+mirrored_etas <- lapply(mirrored_etas, 
+                       FUN = function(matr)
+                         return(mutate(as.data.frame(matr), iteration = row_number())))
+
+names(mirrored_etas) <- mirrored_names$full_name
+
+mirrored_etas <- bind_rows(mirrored_etas, .id = "model_name")
+
+colnames(mirrored_etas) <- c("model_name", "intercept1", "year1", "intercept2", "year2", "iteration")
+
+# 
+# mirrored_etas <- mirrored_etas %>%
+#   tidyr::gather(-model_name, -iteration, key = "par", value = "val")
+# 
+# mirrored_etas_100 <- ggplot(data = filter(mirrored_etas, model_name == "models_1977_2_0_time_100_64"), aes(x = iteration, y = val)) +
+#   geom_line() +
+#   facet_wrap(vars(par), scales = "free", strip.position = "top") +
+#   theme_bw()
+
+mirrored_etas_plot1 <- ggplot(data = mirrored_etas, aes(x =intercept1, y = year1)) +
+  geom_point() + 
+  theme_bw() +
+  facet_wrap(vars(model_name), scales = "free", strip.position = "top")
+
+mirrored_etas_plot1
+
+
+mirrored_etas_plot2 <- ggplot(data = mirrored_etas, aes(x =intercept2, y = year2)) +
+  geom_point() + 
+  theme_bw() +
+  facet_wrap(vars(model_name), scales = "free", strip.position = "top")
+
+mirrored_etas_plot2
+
+```
